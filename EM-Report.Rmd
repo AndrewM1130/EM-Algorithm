@@ -16,24 +16,32 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ```{r include = FALSE}
 library(dplyr)
+library(assertthat)
+library(microbenchmark)
 ```
 
 ```{r include = FALSE}
 sessionInfo()
 ```
 
+**Github: http://github.com/EM-Algorithm**
 
 # Introduction
 
-Why do we care about Expectation-Maximization Algorithms? In a sentence, they are very useful for fitting models onto data containing latent or truncated observations. For example, take a look at the following setup; note that there exist latent variables.
+Why do we care about Expectation-Maximization Algorithms? In a sentence, they are very useful for fitting models onto data containing latent or truncated observations. For example, tax data may contain incomes that are bracketed above a certain level - '$500,000 & over' may be the label of high income tax-payers. In voter data, we may have censored values for . Surprisingly, even policing data is censored as inspections [4].
 
-To this end, we will break this analysis down into four sections, each complete with examples. 
+To this end, we will break this analysis down into four sections, each complete with examples. We will be constructing an EM algorithm for linear regression on right-censored data. For the purposes of this demonstration, we will be utilizing  R - this method can be implemented and tested in Python for identical results.  
 
-First, let's define the random variables and parameters of the log likelihood function $L(\theta|X)$ that we want to maximize with our algorithm:
+First, let's define the random variables and parameters of the log likelihood function $L(\theta|X)$ that we want to maximize with our algorithm; I will provide a concise proof of the EM Algorithm below. 
 
   - $Y_{complete} =  (X_i,Z_i)$
   - $X_i$ (Uncensored/Known Data)
   - $Z_i$ (Censored Data
+
+**Proof.**
+$\rightarrow$ Let
+
+**So how do we translate this mathematical text into functional code? Let's take the following steps:**
 
 i)  E step: To maximize the quantity $Q(\theta,\theta^t)$, we first construct the log density based on our starting values
 
@@ -41,8 +49,11 @@ ii) M step: The M step consists of maximizing $Q(\theta,\theta^t)$ from the E-st
 
 iii) Take the $\theta^t$ we get from the M step, and plug that in as $\theta$ for the E-step. While we are guaranteed to arrive at a local minimum, we should give deep consideration for our starting values. Repeat until convergence.
 
-Reasonable starting values may be found by fitting a biased regression model on the truncated data since that is the best(and only) information we are given. I would say that testing with multiple starting values would also be smart because MLE's and log likelihoods can have multiple local minima that our algorithm may get "stuck" on.
+One issue with EM Algorithms choosing reasonable starting values. I propose that starting values may be found by fitting a biased regression model on the truncated data since that is the best(and only) information we are given. I would say that testing with multiple starting values would also be smart because MLE's and log likelihoods can have multiple local mini-ma that our algorithm may get "stuck" on.
 
+# Design
+
+For the purposes of demonstration, let's construct randomized data for a si. A plot of this generated data is shown below:
 
 ```{r}
 ## initialize testing data 
@@ -59,28 +70,26 @@ invisible(summary(mod))
 ```
 
 ```{r}
-plot(yComplete,x)
+#Uncensored data plot
+plot(x, yComplete,cex = 1.3, col = "blue", main = "Regression on Uncensored Data", xlab = "X", ylab = "yUncensored")
+abline(lm(yComplete ~ x), col = 'red')
 ```
 
+# Implementation
+
+Compare this to the uncensored data above. Note that fitting a base regression model would not be a good idea here: 
 
 ```{r}
-## helper functions
-## ------------------------ Censor Data Function   -------------
-## Input: x vector, complete original uncensored y data, 
-##threshold we want to censor (between 0 & 1)
-## Returns a list of uncensored y values, censored y values, 
-##a combination of the former 2, indices for known & censored data, 
-## the tau value calculated from threshold given
-
 censor_data <- function(x, yUncensored, thresh = 0.80){
   complete <- yUncensored
   tau <- as.numeric(quantile(complete, probs = thresh))
   known <- complete < tau
   censor <- complete > tau
   complete[complete > tau] <- tau
+  yTotal <- complete
   yKnown <- complete[known]
   yCensored <- complete[censor] 
-  complete <- list(yKnown, yCensored, c(yKnown,yCensored),known, censor,tau)
+  complete <- list(yKnown, yCensored, yTotal ,known,censor,tau)
   names(complete) <- c('yKnown' , 'yCensored', 'yTotal', 'indexKnown', 'indexCensored', 'tau')
   return(complete)
 }
@@ -90,7 +99,7 @@ censor_data <- function(x, yUncensored, thresh = 0.80){
 ##threshold we want to censor (between 0 & 1)
 ## Fits a lm model on censored y values against x and uses those as starting points
 getStart <- function(x, yUncensored, thresh = 0.80){
- 
+  
   begin <- rep(0,3)
   y <- censor_data(x, yUncensored , thresh = thresh)$yTotal
   values <- lm(y ~ x)
@@ -102,29 +111,33 @@ getStart <- function(x, yUncensored, thresh = 0.80){
   
   return(begin)
 }
-
 ```
 
 ```{r}
+## plot of censored data
+graphC <- censor_data(x,yComplete)
 
+plot(x, graphC$yTotal, ylim = c(0,6))
 ```
 
+# Implementation
+
+Compare this to the uncensored data above. Note that fitting a base regression model would not be a good idea here: 
+ 
 ```{r}
 ## EM function
-EM <- function(x, yUncensored, thresh = 0.8, max_iter = 1e5){
+EM <- function(x, yUncensored, thresh = 0.8, max_iter = 1e5, error = 1e-5){
   
   #create censored data with threshold
   total <- censor_data(x, yComplete, thresh = thresh) 
   
- #generate starting estimates from fitting censored regression 
+  #generate starting estimates from fitting censored regression 
   begin <- getStart(x, total$yTotal, thresh = thresh)
   
   ## initialize parameters
   b0 <- begin[1]; b1 <- begin[2]; var1 <- begin[3]
   
-  ## solve for expected and variance of the truncated normal 
-  ## that we assume our censored data comes from
-  
+  ## solve for expected and variance of the truncated normal that we assume our censored data comes from
   updateParam <- function(b0, b1, var1){
     mu_censored <-  b0 + (b1 * x[total$indexCensored])
     tau_star <- (total$tau - mu_censored)/sqrt(var1)
@@ -143,9 +156,9 @@ EM <- function(x, yUncensored, thresh = 0.8, max_iter = 1e5){
   known <- total$indexKnown
   
   Z <- updateParam(b0,b1,var1)
-  count <- 0
+  count <- 1
   
-  #loop through our values and get updated valies
+  #loop through our values and get updated values
   while(count <= max_iter) {
     
     b1_new <- (sum(x[known] * total$yKnown) + sum(x[censor]*Z$E) - 
@@ -155,10 +168,16 @@ EM <- function(x, yUncensored, thresh = 0.8, max_iter = 1e5){
     b0_new <- (sum(total$yKnown) + sum(Z$E))/length(x) - b1_new*mean(x)
     
     var1_new <- (sum((total$yKnown - b0_new - b1_new * x[known])^2) + 
-                sum(Z$E2 - 2*(b0 + b1 * x[censor])*Z$E +
-                      (b0_new + b1_new * x[censor])^2)) / length(x)
+                   sum(Z$E2 - 2*(b0 + b1 * x[censor])*Z$E +
+                         (b0_new + b1_new * x[censor])^2)) / length(x)
     
     #set updated values and recalculate parameters of our truncated normal
+    
+    #termination conditions
+    if(abs(b0_new - b0) < error && abs(b1_new - b1) < error && abs(var1_new - var1) < error){
+      break
+    }
+    
     b0 <- b0_new; b1 <- b1_new; var1 <- var1_new
     Z <- updateParam(b0,b1,var1)
     count <- count + 1
@@ -167,27 +186,57 @@ EM <- function(x, yUncensored, thresh = 0.8, max_iter = 1e5){
   
   result <- list(b0,b1,var1,count)
   names(result) <- c('beta0', 'beta1','variance','count')
-  
   return(result)
 }
+```
 
+# Results
+
+```{r}
+test0 <- EM(x,yComplete, thresh = 0.95, error = 1e-5)
+cat("Estimates when censoring top 5% of data: \n", "beta0 = ", test0$beta0, 
+    "\n beta1 = ", test0$beta1,
+    "\n sigma^2 =", test0$variance,
+    "\n Iteration Count =", test0$count)
 ```
 
 ```{r}
 #20% of top values are censored
-test1 <- EM(x,yComplete,thresh = 0.8)
+test1 <- EM(x,yComplete, thresh = 0.8, error = 1e-5)
 cat("Estimates when censoring top 20% of data: \n", "beta0 = ", test1$beta0, 
     "\n beta1 = ", test1$beta1,
     "\n sigma^2 =", test1$variance,
     "\n Iteration Count =", test1$count)
-
-#80% of top values are censored
-test2 <- EM(x,yComplete,thresh = 0.2)
-cat("Estimates when censoring top 80% of data: \n", "beta0 = ", test2$beta0, 
-    "\n beta1 = ", test2$beta1,
-    "\n sigma^2 = ", test2$variance,
-    "\n Iteration Count =", test1$count)
 ```
+
+```{r}
+#40% of top values are censored
+test2 <- EM(x,yComplete,thresh = 0.6, error = 1e-5)
+cat("Estimates when censoring top 40% of data: \n", "beta0 = ", test1$beta0, 
+    "\n beta1 = ", test2$beta1,
+    "\n sigma^2 =", test2$variance,
+    "\n Iteration Count =", test2$count)
+```
+
+```{r}
+#60% of top values are censored
+test3 <- EM(x,yComplete,thresh = 0.4, error = 1e-5)
+cat("Estimates when censoring top 60% of data: \n", "beta0 = ", test1$beta0, 
+    "\n beta1 = ", test3$beta1,
+    "\n sigma^2 =", test3$variance,
+    "\n Iteration Count =", test3$count)
+```
+
+```{r}
+#80% of top values are censored
+test4 <- EM(x,yComplete,thresh = 0.2, error = 1e-5)
+cat("Estimates when censoring top 80% of data: \n", "beta0 = ", test2$beta0, 
+    "\n beta1 = ", test4$beta1,
+    "\n sigma^2 = ", test4$variance,
+    "\n Iteration Count =", test4$count)
+```
+
+# Comparisons
 
   Let Y be the complete data and $Y_i$ be the variables in the uncensored subset of Y. Then the MLE of Y is given by $log([\prod_{i-1}^{n}\mathbb{P}(Y= Y_i)][\prod_{i-1}^{n}\mathbb{P}(Y > \tau)])$ = $log([\prod_{i-1}^{n}\mathbb{P}(Y= Y_i)]) + log([\prod_{i-1}^{n}\mathbb{P}(Y > \tau)])$ = $\sum_{i=1}^{n}log(\mathbb{P}(Y = Y_i)) + \sum_{i=1}^{n}log(\mathbb{P}(Y > \tau))$. 
 
@@ -216,38 +265,37 @@ logmax <- function(begin = eval(parse(text = 'param <- getStart(x, yComplete)'))
   logscore <- sum(sum(dnorm(total$yKnown, mean = mu_known, sd = sig2, log = TRUE)), 
                   sum(pnorm(total$tau, mean = mu_censored, sd = sig2, 
                             log = TRUE,lower.tail = FALSE))) 
-
+  
   ## finding the max of a positive is the same as finding the minimum of its negative
   ## optim() defaults to minimization of a function
   
   return(-logscore)
 }
-
 ```
 
 ```{r}
-# #optim starting at recommended default values
-# testDefault<- optim(par =  eval(parse(text = 'param <- getStart(x, yComplete)')),
-#                     x = x, yUncensored = yComplete, 
-#              fn = logmax, method = 'BFGS', hessian = TRUE)
-# 
-# 
-# #optim starting very close to the true solution
-# testOptim <- optim(par = c(5,2,6), x = x, yUncensored = yComplete, 
-#                    fn = logmax, method = 'BFGS', hessian = TRUE)
-# 
-# #optim estimated values, iteration count, and estimated errors
-# cat("When using optim() to maximize our log likelihood and 
-#     using our porposed starting values from part(b),\n our estimates (beta0,beta1,variance) =",
-#     testDefault$par, "with iteration count", as.numeric(testDefault$counts[1]), 
-#     "and \n standard errors",
-#     diag(solve(testDefault$hessian)) ,"respectively.\n")
-# 
-# cat("When choosing (1,1,1) as our staring value, 
-#     our estimates (beta0,beta1,variance) =",
-#     testOptim$par, "with iteration count \n", 
-#     as.numeric(testOptim$counts[1]),
-#       "and standard errors",diag(solve(testDefault$hessian)) ,"respectively.")
+#optim starting at recommended default values
+testDefault<- optim(par =  eval(parse(text = 'param <- getStart(x, yComplete)')),
+                     x = x, yUncensored = yComplete, 
+                    fn = logmax, method = 'BFGS', hessian = TRUE)
+
+
+#optim starting very close to the true solution
+testOptim <- optim(par = c(2,2,6), x = x, yUncensored = yComplete, 
+                   fn = logmax, method = 'BFGS', hessian = TRUE)
+
+#optim estimated values, iteration count, and estimated errors
+cat("When using optim() to maximize our log likelihood and 
+    using our porposed starting values from part(b),\n our estimates (beta0,beta1,variance) =",
+    testDefault$par, "with iteration count", as.numeric(testDefault$counts[1]), 
+    "and \n standard errors",
+    diag(solve(testDefault$hessian)) ,"respectively.\n")
+
+cat("When choosing (2,2,6) as our staring value, 
+    our estimates (beta0,beta1,variance) =",
+    testOptim$par, "with iteration count \n", 
+    as.numeric(testOptim$counts[1]),
+    "and standard errors",diag(solve(testDefault$hessian)) ,"respectively.")
 
 ```
 
@@ -255,5 +303,25 @@ logmax <- function(begin = eval(parse(text = 'param <- getStart(x, yComplete)'))
   
   Next, let's look at
   
+```{r}
+microbenchmark(EM(x,yComplete,thresh = 0.2),
+               optim(par =  eval(parse(text = 'param <- getStart(x, yComplete)')),
+                     x = x, yUncensored = yComplete, 
+                    fn = logmax, method = 'BFGS', hessian = TRUE),
+               optim(par = c(2,2,6), x = x, yUncensored = yComplete, 
+                   fn = logmax, method = 'BFGS', hessian = TRUE))
+```
+  
+  
+# Discussion
+  
+  Vardi’s Expectation-Maximization (EM) algorithm is frequently used for computing the nonparametric maximum likelihood estimator of length-biased right-censored data, which does not admit a closed-form representation. The EM algorithm may converge slowly, particularly for heavily censored data. We studied two algorithms for accelerating the convergence of the EM algorithm, based on iterative convex minorant and Aitken’s delta squared process
+  
 **References**
-[Video Source](https://www.youtube.com/watch?v=Ydhrz3IWM2I&list=PLmM_3MA2HWpauQtozhzRYzYWigz4Ru44K&index=6,))
+[Video Source](https://www.youtube.com/watch?v=Ydhrz3IWM2I&list=PLmM_3MA2HWpauQtozhzRYzYWigz4Ru44K&index=6,)
+
+[Paper on EM-optimization & efficiency](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC5716484/)
+
+Martin Haugh - EM Algorithm
+
+Harvard Busines Review
