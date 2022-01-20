@@ -22,9 +22,14 @@ library(dplyr)
 sessionInfo()
 ```
 
+
+# Introduction
+
+Why do we care about Expectation-Maximization Algorithms? In a sentence, they are very useful for fitting models onto data containing latent or truncated observations. For example, take a look at the following setup; note that there exist latent variables.
+
 To this end, we will break this analysis down into four sections, each complete with examples. 
 
-a.  First, let's define the random variables and parameters of the log likelihood function $L(\theta|X)$ that we want to maximize with our algorithm:
+First, let's define the random variables and parameters of the log likelihood function $L(\theta|X)$ that we want to maximize with our algorithm:
 
   - $Y_{complete} =  (X_i,Z_i)$
   - $X_i$ (Uncensored/Known Data)
@@ -36,9 +41,8 @@ ii) M step: The M step consists of maximizing $Q(\theta,\theta^t)$ from the E-st
 
 iii) Take the $\theta^t$ we get from the M step, and plug that in as $\theta$ for the E-step. While we are guaranteed to arrive at a local minimum, we should give deep consideration for our starting values. Repeat until convergence.
 
-b.  Reasonable starting values may be found by fitting a biased regression model on the truncated data since that is the best(and only) information we are given. I would say that testing with multiple starting values would also be smart because MLE's and log likelihoods can have multiple local minima that our algorithm may get "stuck" on.
+Reasonable starting values may be found by fitting a biased regression model on the truncated data since that is the best(and only) information we are given. I would say that testing with multiple starting values would also be smart because MLE's and log likelihoods can have multiple local minima that our algorithm may get "stuck" on.
 
-c. 
 
 ```{r}
 ## initialize testing data 
@@ -53,6 +57,11 @@ yComplete <- rnorm(n, beta0 + beta1*x, sqrt(sigma2))
 mod <- lm(yComplete ~ x)
 invisible(summary(mod))
 ```
+
+```{r}
+plot(yComplete,x)
+```
+
 
 ```{r}
 ## helper functions
@@ -96,6 +105,9 @@ getStart <- function(x, yUncensored, thresh = 0.80){
 
 ```
 
+```{r}
+
+```
 
 ```{r}
 ## EM function
@@ -177,7 +189,7 @@ cat("Estimates when censoring top 80% of data: \n", "beta0 = ", test2$beta0,
     "\n Iteration Count =", test1$count)
 ```
 
-d.  Let Y be the complete data and $Y_i$ be the variables in the uncensored subset of Y. Then the MLE of Y is given by $log([\prod_{i-1}^{n}\mathbb{P}(Y= Y_i)][\prod_{i-1}^{n}\mathbb{P}(Y > \tau)])$ = $log([\prod_{i-1}^{n}\mathbb{P}(Y= Y_i)]) + log([\prod_{i-1}^{n}\mathbb{P}(Y > \tau)])$ = $\sum_{i=1}^{n}log(\mathbb{P}(Y = Y_i)) + \sum_{i=1}^{n}log(\mathbb{P}(Y > \tau))$. 
+  Let Y be the complete data and $Y_i$ be the variables in the uncensored subset of Y. Then the MLE of Y is given by $log([\prod_{i-1}^{n}\mathbb{P}(Y= Y_i)][\prod_{i-1}^{n}\mathbb{P}(Y > \tau)])$ = $log([\prod_{i-1}^{n}\mathbb{P}(Y= Y_i)]) + log([\prod_{i-1}^{n}\mathbb{P}(Y > \tau)])$ = $\sum_{i=1}^{n}log(\mathbb{P}(Y = Y_i)) + \sum_{i=1}^{n}log(\mathbb{P}(Y > \tau))$. 
 
 ```{r}
 param <- getStart(x, yComplete)
