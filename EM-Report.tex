@@ -1,0 +1,439 @@
+% Options for packages loaded elsewhere
+\PassOptionsToPackage{unicode}{hyperref}
+\PassOptionsToPackage{hyphens}{url}
+%
+\documentclass[
+]{article}
+\title{Expectation Maximization Algorithms for Generalized Linear
+Models}
+\author{Andrew Ma}
+\date{January 17, 2022}
+
+\usepackage{amsmath,amssymb}
+\usepackage{lmodern}
+\usepackage{iftex}
+\ifPDFTeX
+  \usepackage[T1]{fontenc}
+  \usepackage[utf8]{inputenc}
+  \usepackage{textcomp} % provide euro and other symbols
+\else % if luatex or xetex
+  \usepackage{unicode-math}
+  \defaultfontfeatures{Scale=MatchLowercase}
+  \defaultfontfeatures[\rmfamily]{Ligatures=TeX,Scale=1}
+\fi
+% Use upquote if available, for straight quotes in verbatim environments
+\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
+\IfFileExists{microtype.sty}{% use microtype if available
+  \usepackage[]{microtype}
+  \UseMicrotypeSet[protrusion]{basicmath} % disable protrusion for tt fonts
+}{}
+\makeatletter
+\@ifundefined{KOMAClassName}{% if non-KOMA class
+  \IfFileExists{parskip.sty}{%
+    \usepackage{parskip}
+  }{% else
+    \setlength{\parindent}{0pt}
+    \setlength{\parskip}{6pt plus 2pt minus 1pt}}
+}{% if KOMA class
+  \KOMAoptions{parskip=half}}
+\makeatother
+\usepackage{xcolor}
+\IfFileExists{xurl.sty}{\usepackage{xurl}}{} % add URL line breaks if available
+\IfFileExists{bookmark.sty}{\usepackage{bookmark}}{\usepackage{hyperref}}
+\hypersetup{
+  pdftitle={Expectation Maximization Algorithms for Generalized Linear Models},
+  pdfauthor={Andrew Ma},
+  hidelinks,
+  pdfcreator={LaTeX via pandoc}}
+\urlstyle{same} % disable monospaced font for URLs
+\usepackage[margin=1in]{geometry}
+\usepackage{color}
+\usepackage{fancyvrb}
+\newcommand{\VerbBar}{|}
+\newcommand{\VERB}{\Verb[commandchars=\\\{\}]}
+\DefineVerbatimEnvironment{Highlighting}{Verbatim}{commandchars=\\\{\}}
+% Add ',fontsize=\small' for more characters per line
+\usepackage{framed}
+\definecolor{shadecolor}{RGB}{248,248,248}
+\newenvironment{Shaded}{\begin{snugshade}}{\end{snugshade}}
+\newcommand{\AlertTok}[1]{\textcolor[rgb]{0.94,0.16,0.16}{#1}}
+\newcommand{\AnnotationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\AttributeTok}[1]{\textcolor[rgb]{0.77,0.63,0.00}{#1}}
+\newcommand{\BaseNTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\BuiltInTok}[1]{#1}
+\newcommand{\CharTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\CommentTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textit{#1}}}
+\newcommand{\CommentVarTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\ConstantTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\ControlFlowTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{\textbf{#1}}}
+\newcommand{\DataTypeTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{#1}}
+\newcommand{\DecValTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\DocumentationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\ErrorTok}[1]{\textcolor[rgb]{0.64,0.00,0.00}{\textbf{#1}}}
+\newcommand{\ExtensionTok}[1]{#1}
+\newcommand{\FloatTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\FunctionTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\ImportTok}[1]{#1}
+\newcommand{\InformationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\KeywordTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{\textbf{#1}}}
+\newcommand{\NormalTok}[1]{#1}
+\newcommand{\OperatorTok}[1]{\textcolor[rgb]{0.81,0.36,0.00}{\textbf{#1}}}
+\newcommand{\OtherTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{#1}}
+\newcommand{\PreprocessorTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textit{#1}}}
+\newcommand{\RegionMarkerTok}[1]{#1}
+\newcommand{\SpecialCharTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\SpecialStringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\StringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\VariableTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\VerbatimStringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\WarningTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\usepackage{graphicx}
+\makeatletter
+\def\maxwidth{\ifdim\Gin@nat@width>\linewidth\linewidth\else\Gin@nat@width\fi}
+\def\maxheight{\ifdim\Gin@nat@height>\textheight\textheight\else\Gin@nat@height\fi}
+\makeatother
+% Scale images if necessary, so that they will not overflow the page
+% margins by default, and it is still possible to overwrite the defaults
+% using explicit options in \includegraphics[width, height, ...]{}
+\setkeys{Gin}{width=\maxwidth,height=\maxheight,keepaspectratio}
+% Set default figure placement to htbp
+\makeatletter
+\def\fps@figure{htbp}
+\makeatother
+\setlength{\emergencystretch}{3em} % prevent overfull lines
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+\setcounter{secnumdepth}{5}
+\usepackage{float}
+\ifLuaTeX
+  \usepackage{selnolig}  % disable illegal ligatures
+\fi
+
+\begin{document}
+\maketitle
+
+\textbf{Problem 3.}
+
+\href{https://www.youtube.com/watch?v=Ydhrz3IWM2I\&list=PLmM_3MA2HWpauQtozhzRYzYWigz4Ru44K\&index=6,}{Video
+Source})
+
+\begin{enumerate}
+\def\labelenumi{\alph{enumi}.}
+\tightlist
+\item
+  First, let's define the random variables and parameters of the log
+  likelihood function \(L(\theta|X)\) that we want to maximize with our
+  algorithm:
+\end{enumerate}
+
+\begin{itemize}
+\tightlist
+\item
+  \(Y_{complete} = (X_i,Z_i)\)
+\item
+  \(X_i\) (Uncensored/Known Data)
+\item
+  \(Z_i\) (Censored Data)
+\end{itemize}
+
+\begin{figure}
+\centering
+\includegraphics{~/Desktop/EM1.png}
+\caption{EM-Derivations-1}
+\end{figure}
+
+\begin{figure}
+\centering
+\includegraphics{~/Desktop/EM2.png}
+\caption{EM-Derivations-2}
+\end{figure}
+
+\begin{figure}
+\centering
+\includegraphics{~/Desktop/EM3.png}
+\caption{EM-Derivations-3}
+\end{figure}
+
+\begin{figure}
+\centering
+\includegraphics{~/Desktop/EMPLOT.png}
+\caption{EM-PICTURE}
+\end{figure}
+
+\begin{enumerate}
+\def\labelenumi{\roman{enumi})}
+\item
+  E step: To maximize the quantity \(Q(\theta,\theta^t)\), we first
+  construct the log density based on our starting values
+\item
+  M step: The M step consists of maximizing \(Q(\theta,\theta^t)\) from
+  the E-step \textbf{with respect to} \(\theta\), and updating this
+  value to be our next theta in the E-step.
+\item
+  Take the \(\theta^t\) we get from the M step, and plug that in as
+  \(\theta\) for the E-step. While we are guaranteed to arrive at a
+  local minimum, we should give deep consideration for our starting
+  values. Repeat until convergence.
+\end{enumerate}
+
+\begin{enumerate}
+\def\labelenumi{\alph{enumi}.}
+\setcounter{enumi}{1}
+\item
+  Reasonable starting values may be found by fitting a biased regression
+  model on the truncated data since that is the best(and only)
+  information we are given. I would say that testing with multiple
+  starting values would also be smart because MLE's and log likelihoods
+  can have multiple local minima that our algorithm may get ``stuck''
+  on.
+\item
+\end{enumerate}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\DocumentationTok{\#\# initialize testing data }
+\FunctionTok{set.seed}\NormalTok{(}\DecValTok{1}\NormalTok{)}
+\NormalTok{n }\OtherTok{\textless{}{-}} \DecValTok{100}
+\NormalTok{beta0 }\OtherTok{\textless{}{-}} \DecValTok{1}\NormalTok{; beta1 }\OtherTok{\textless{}{-}} \DecValTok{2}\NormalTok{; sigma2 }\OtherTok{\textless{}{-}} \DecValTok{6}
+\NormalTok{x }\OtherTok{\textless{}{-}} \FunctionTok{runif}\NormalTok{(n)}
+\NormalTok{yComplete }\OtherTok{\textless{}{-}} \FunctionTok{rnorm}\NormalTok{(n, beta0 }\SpecialCharTok{+}\NormalTok{ beta1}\SpecialCharTok{*}\NormalTok{x, }\FunctionTok{sqrt}\NormalTok{(sigma2))}
+
+\DocumentationTok{\#\# Parameters above were chosen such that signal in data is moderately strong.}
+\DocumentationTok{\#\# The estimate divided by std error is approximately 3.}
+\NormalTok{mod }\OtherTok{\textless{}{-}} \FunctionTok{lm}\NormalTok{(yComplete }\SpecialCharTok{\textasciitilde{}}\NormalTok{ x)}
+\FunctionTok{invisible}\NormalTok{(}\FunctionTok{summary}\NormalTok{(mod))}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\DocumentationTok{\#\# helper functions}
+\DocumentationTok{\#\# {-}{-}{-}{-}{-}{-}{-}{-}{-}{-}{-}{-}{-}{-}{-}{-}{-}{-}{-}{-}{-}{-}{-}{-} Censor Data Function   {-}{-}{-}{-}{-}{-}{-}{-}{-}{-}{-}{-}{-}}
+\DocumentationTok{\#\# Input: x vector, complete original uncensored y data, }
+\DocumentationTok{\#\#threshold we want to censor (between 0 \& 1)}
+\DocumentationTok{\#\# Returns a list of uncensored y values, censored y values, }
+\DocumentationTok{\#\#a combination of the former 2, indices for known \& censored data, }
+\DocumentationTok{\#\# the tau value calculated from threshold given}
+
+\NormalTok{censor\_data }\OtherTok{\textless{}{-}} \ControlFlowTok{function}\NormalTok{(x, yUncensored, }\AttributeTok{thresh =} \FloatTok{0.80}\NormalTok{)\{}
+\NormalTok{  complete }\OtherTok{\textless{}{-}}\NormalTok{ yUncensored}
+\NormalTok{  tau }\OtherTok{\textless{}{-}} \FunctionTok{as.numeric}\NormalTok{(}\FunctionTok{quantile}\NormalTok{(complete, }\AttributeTok{probs =}\NormalTok{ thresh))}
+\NormalTok{  known }\OtherTok{\textless{}{-}}\NormalTok{ complete }\SpecialCharTok{\textless{}}\NormalTok{ tau}
+\NormalTok{  censor }\OtherTok{\textless{}{-}}\NormalTok{ complete }\SpecialCharTok{\textgreater{}}\NormalTok{ tau}
+\NormalTok{  complete[complete }\SpecialCharTok{\textgreater{}}\NormalTok{ tau] }\OtherTok{\textless{}{-}}\NormalTok{ tau}
+\NormalTok{  yKnown }\OtherTok{\textless{}{-}}\NormalTok{ complete[known]}
+\NormalTok{  yCensored }\OtherTok{\textless{}{-}}\NormalTok{ complete[censor] }
+\NormalTok{  complete }\OtherTok{\textless{}{-}} \FunctionTok{list}\NormalTok{(yKnown, yCensored, }\FunctionTok{c}\NormalTok{(yKnown,yCensored),known, censor,tau)}
+  \FunctionTok{names}\NormalTok{(complete) }\OtherTok{\textless{}{-}} \FunctionTok{c}\NormalTok{(}\StringTok{\textquotesingle{}yKnown\textquotesingle{}}\NormalTok{ , }\StringTok{\textquotesingle{}yCensored\textquotesingle{}}\NormalTok{, }\StringTok{\textquotesingle{}yTotal\textquotesingle{}}\NormalTok{, }\StringTok{\textquotesingle{}indexKnown\textquotesingle{}}\NormalTok{, }\StringTok{\textquotesingle{}indexCensored\textquotesingle{}}\NormalTok{, }\StringTok{\textquotesingle{}tau\textquotesingle{}}\NormalTok{)}
+  \FunctionTok{return}\NormalTok{(complete)}
+\NormalTok{\}}
+
+\DocumentationTok{\#\# {-}{-}{-}{-}{-}{-}{-}{-}{-}{-}{-}{-}{-}{-}{-}{-}{-}{-}{-}{-}{-}{-}{-}{-}{-}{-}{-}{-} grab Starting values {-}{-}{-}{-}{-}{-}{-}{-}{-}{-}{-}{-}{-}{-}{-}{-}{-}{-}{-}{-}{-}{-}{-}{-}{-}{-}}
+\DocumentationTok{\#\# Input: x vector, complete original uncensored y data, }
+\DocumentationTok{\#\#threshold we want to censor (between 0 \& 1)}
+\DocumentationTok{\#\# Fits a lm model on censored y values against x and uses those as starting points}
+\NormalTok{getStart }\OtherTok{\textless{}{-}} \ControlFlowTok{function}\NormalTok{(x, yUncensored, }\AttributeTok{thresh =} \FloatTok{0.80}\NormalTok{)\{}
+ 
+\NormalTok{  begin }\OtherTok{\textless{}{-}} \FunctionTok{rep}\NormalTok{(}\DecValTok{0}\NormalTok{,}\DecValTok{3}\NormalTok{)}
+\NormalTok{  y }\OtherTok{\textless{}{-}} \FunctionTok{censor\_data}\NormalTok{(x, yUncensored , }\AttributeTok{thresh =}\NormalTok{ thresh)}\SpecialCharTok{$}\NormalTok{yTotal}
+\NormalTok{  values }\OtherTok{\textless{}{-}} \FunctionTok{lm}\NormalTok{(y }\SpecialCharTok{\textasciitilde{}}\NormalTok{ x)}
+  
+  \DocumentationTok{\#\# set starting values}
+\NormalTok{  begin[}\DecValTok{1}\NormalTok{] }\OtherTok{\textless{}{-}}\NormalTok{ values}\SpecialCharTok{$}\NormalTok{coefficients[}\DecValTok{1}\NormalTok{]}
+\NormalTok{  begin[}\DecValTok{2}\NormalTok{] }\OtherTok{\textless{}{-}}\NormalTok{ values}\SpecialCharTok{$}\NormalTok{coefficients[}\DecValTok{2}\NormalTok{]}
+\NormalTok{  begin[}\DecValTok{3}\NormalTok{] }\OtherTok{\textless{}{-}}\NormalTok{ (}\FunctionTok{summary}\NormalTok{(values)}\SpecialCharTok{$}\NormalTok{sigma)}\SpecialCharTok{**}\DecValTok{2}
+  
+  \FunctionTok{return}\NormalTok{(begin)}
+\NormalTok{\}}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\DocumentationTok{\#\# EM function}
+\NormalTok{EM }\OtherTok{\textless{}{-}} \ControlFlowTok{function}\NormalTok{(x, yUncensored, }\AttributeTok{thresh =} \FloatTok{0.8}\NormalTok{, }\AttributeTok{max\_iter =} \FloatTok{1e5}\NormalTok{)\{}
+  
+  \CommentTok{\#create censored data with threshold}
+\NormalTok{  total }\OtherTok{\textless{}{-}} \FunctionTok{censor\_data}\NormalTok{(x, yComplete, }\AttributeTok{thresh =}\NormalTok{ thresh) }
+  
+ \CommentTok{\#generate starting estimates from fitting censored regression }
+\NormalTok{  begin }\OtherTok{\textless{}{-}} \FunctionTok{getStart}\NormalTok{(x, total}\SpecialCharTok{$}\NormalTok{yTotal, }\AttributeTok{thresh =}\NormalTok{ thresh)}
+  
+  \DocumentationTok{\#\# initialize parameters}
+\NormalTok{  b0 }\OtherTok{\textless{}{-}}\NormalTok{ begin[}\DecValTok{1}\NormalTok{]; b1 }\OtherTok{\textless{}{-}}\NormalTok{ begin[}\DecValTok{2}\NormalTok{]; var1 }\OtherTok{\textless{}{-}}\NormalTok{ begin[}\DecValTok{3}\NormalTok{]}
+  
+  \DocumentationTok{\#\# solve for expected and variance of the truncated normal }
+  \DocumentationTok{\#\# that we assume our censored data comes from}
+  
+\NormalTok{  updateParam }\OtherTok{\textless{}{-}} \ControlFlowTok{function}\NormalTok{(b0, b1, var1)\{}
+\NormalTok{    mu\_censored }\OtherTok{\textless{}{-}}\NormalTok{  b0 }\SpecialCharTok{+}\NormalTok{ (b1 }\SpecialCharTok{*}\NormalTok{ x[total}\SpecialCharTok{$}\NormalTok{indexCensored])}
+\NormalTok{    tau\_star }\OtherTok{\textless{}{-}}\NormalTok{ (total}\SpecialCharTok{$}\NormalTok{tau }\SpecialCharTok{{-}}\NormalTok{ mu\_censored)}\SpecialCharTok{/}\FunctionTok{sqrt}\NormalTok{(var1)}
+\NormalTok{    rho }\OtherTok{\textless{}{-}} \FunctionTok{dnorm}\NormalTok{(tau\_star, }\AttributeTok{mean =}\NormalTok{ mu\_censored, }\AttributeTok{sd =} \FunctionTok{sqrt}\NormalTok{(var1)) }\SpecialCharTok{/} 
+\NormalTok{      (}\DecValTok{1}\SpecialCharTok{{-}}\FunctionTok{pnorm}\NormalTok{(tau\_star, }\AttributeTok{mean =}\NormalTok{ mu\_censored, }\AttributeTok{sd =} \FunctionTok{sqrt}\NormalTok{(var1)))}
+    
+\NormalTok{    EZ1 }\OtherTok{\textless{}{-}}\NormalTok{ mu\_censored }\SpecialCharTok{+} \FunctionTok{sqrt}\NormalTok{(var1)}\SpecialCharTok{*}\NormalTok{rho}
+\NormalTok{    VARZ1 }\OtherTok{\textless{}{-}}\NormalTok{ var1 }\SpecialCharTok{*}\NormalTok{ (}\DecValTok{1} \SpecialCharTok{+}\NormalTok{ (tau\_star}\SpecialCharTok{*}\NormalTok{rho) }\SpecialCharTok{{-}}\NormalTok{ rho}\SpecialCharTok{\^{}}\DecValTok{2}\NormalTok{)}
+\NormalTok{    EZ21 }\OtherTok{\textless{}{-}}\NormalTok{ VARZ1 }\SpecialCharTok{+}\NormalTok{ EZ1 }\CommentTok{\# E(X\^{}2) = VAR(X) + (EX)\^{}2}
+    
+\NormalTok{    temp }\OtherTok{\textless{}{-}} \FunctionTok{list}\NormalTok{(EZ1,EZ21); }\FunctionTok{names}\NormalTok{(temp) }\OtherTok{\textless{}{-}} \FunctionTok{c}\NormalTok{(}\StringTok{\textquotesingle{}E\textquotesingle{}}\NormalTok{, }\StringTok{\textquotesingle{}E2\textquotesingle{}}\NormalTok{)}
+    \FunctionTok{return}\NormalTok{(temp)}
+\NormalTok{  \}}
+  
+\NormalTok{  censor }\OtherTok{\textless{}{-}}\NormalTok{ total}\SpecialCharTok{$}\NormalTok{indexCensored}
+\NormalTok{  known }\OtherTok{\textless{}{-}}\NormalTok{ total}\SpecialCharTok{$}\NormalTok{indexKnown}
+  
+\NormalTok{  Z }\OtherTok{\textless{}{-}} \FunctionTok{updateParam}\NormalTok{(b0,b1,var1)}
+\NormalTok{  count }\OtherTok{\textless{}{-}} \DecValTok{0}
+  
+  \CommentTok{\#loop through our values and get updated valies}
+  \ControlFlowTok{while}\NormalTok{(count }\SpecialCharTok{\textless{}=}\NormalTok{ max\_iter) \{}
+    
+\NormalTok{    b1\_new }\OtherTok{\textless{}{-}}\NormalTok{ (}\FunctionTok{sum}\NormalTok{(x[known] }\SpecialCharTok{*}\NormalTok{ total}\SpecialCharTok{$}\NormalTok{yKnown) }\SpecialCharTok{+} \FunctionTok{sum}\NormalTok{(x[censor]}\SpecialCharTok{*}\NormalTok{Z}\SpecialCharTok{$}\NormalTok{E) }\SpecialCharTok{{-}} 
+                 \FunctionTok{mean}\NormalTok{(x) }\SpecialCharTok{*}\NormalTok{ (}\FunctionTok{sum}\NormalTok{(total}\SpecialCharTok{$}\NormalTok{yKnown) }\SpecialCharTok{+} \FunctionTok{sum}\NormalTok{(Z}\SpecialCharTok{$}\NormalTok{E)))}\SpecialCharTok{/}
+\NormalTok{      (}\FunctionTok{sum}\NormalTok{(x}\SpecialCharTok{*}\NormalTok{x) }\SpecialCharTok{{-}} \FunctionTok{length}\NormalTok{(x) }\SpecialCharTok{*} \FunctionTok{mean}\NormalTok{(x)}\SpecialCharTok{\^{}}\DecValTok{2}\NormalTok{)}
+    
+\NormalTok{    b0\_new }\OtherTok{\textless{}{-}}\NormalTok{ (}\FunctionTok{sum}\NormalTok{(total}\SpecialCharTok{$}\NormalTok{yKnown) }\SpecialCharTok{+} \FunctionTok{sum}\NormalTok{(Z}\SpecialCharTok{$}\NormalTok{E))}\SpecialCharTok{/}\FunctionTok{length}\NormalTok{(x) }\SpecialCharTok{{-}}\NormalTok{ b1\_new}\SpecialCharTok{*}\FunctionTok{mean}\NormalTok{(x)}
+    
+\NormalTok{    var1\_new }\OtherTok{\textless{}{-}}\NormalTok{ (}\FunctionTok{sum}\NormalTok{((total}\SpecialCharTok{$}\NormalTok{yKnown }\SpecialCharTok{{-}}\NormalTok{ b0\_new }\SpecialCharTok{{-}}\NormalTok{ b1\_new }\SpecialCharTok{*}\NormalTok{ x[known])}\SpecialCharTok{\^{}}\DecValTok{2}\NormalTok{) }\SpecialCharTok{+} 
+                \FunctionTok{sum}\NormalTok{(Z}\SpecialCharTok{$}\NormalTok{E2 }\SpecialCharTok{{-}} \DecValTok{2}\SpecialCharTok{*}\NormalTok{(b0 }\SpecialCharTok{+}\NormalTok{ b1 }\SpecialCharTok{*}\NormalTok{ x[censor])}\SpecialCharTok{*}\NormalTok{Z}\SpecialCharTok{$}\NormalTok{E }\SpecialCharTok{+}
+\NormalTok{                      (b0\_new }\SpecialCharTok{+}\NormalTok{ b1\_new }\SpecialCharTok{*}\NormalTok{ x[censor])}\SpecialCharTok{\^{}}\DecValTok{2}\NormalTok{)) }\SpecialCharTok{/} \FunctionTok{length}\NormalTok{(x)}
+    
+    \CommentTok{\#set updated values and recalculate parameters of our truncated normal}
+\NormalTok{    b0 }\OtherTok{\textless{}{-}}\NormalTok{ b0\_new; b1 }\OtherTok{\textless{}{-}}\NormalTok{ b1\_new; var1 }\OtherTok{\textless{}{-}}\NormalTok{ var1\_new}
+\NormalTok{    Z }\OtherTok{\textless{}{-}} \FunctionTok{updateParam}\NormalTok{(b0,b1,var1)}
+\NormalTok{    count }\OtherTok{\textless{}{-}}\NormalTok{ count }\SpecialCharTok{+} \DecValTok{1}
+    
+\NormalTok{  \}}
+  
+\NormalTok{  result }\OtherTok{\textless{}{-}} \FunctionTok{list}\NormalTok{(b0,b1,var1,count)}
+  \FunctionTok{names}\NormalTok{(result) }\OtherTok{\textless{}{-}} \FunctionTok{c}\NormalTok{(}\StringTok{\textquotesingle{}beta0\textquotesingle{}}\NormalTok{, }\StringTok{\textquotesingle{}beta1\textquotesingle{}}\NormalTok{,}\StringTok{\textquotesingle{}variance\textquotesingle{}}\NormalTok{,}\StringTok{\textquotesingle{}count\textquotesingle{}}\NormalTok{)}
+  
+  \FunctionTok{return}\NormalTok{(result)}
+\NormalTok{\}}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\#20\% of top values are censored}
+\NormalTok{test1 }\OtherTok{\textless{}{-}} \FunctionTok{EM}\NormalTok{(x,yComplete,}\AttributeTok{thresh =} \FloatTok{0.8}\NormalTok{)}
+\FunctionTok{cat}\NormalTok{(}\StringTok{"Estimates when censoring top 20\% of data: }\SpecialCharTok{\textbackslash{}n}\StringTok{"}\NormalTok{, }\StringTok{"beta0 = "}\NormalTok{, test1}\SpecialCharTok{$}\NormalTok{beta0, }
+    \StringTok{"}\SpecialCharTok{\textbackslash{}n}\StringTok{ beta1 = "}\NormalTok{, test1}\SpecialCharTok{$}\NormalTok{beta1,}
+    \StringTok{"}\SpecialCharTok{\textbackslash{}n}\StringTok{ sigma\^{}2 ="}\NormalTok{, test1}\SpecialCharTok{$}\NormalTok{variance,}
+    \StringTok{"}\SpecialCharTok{\textbackslash{}n}\StringTok{ Iteration Count ="}\NormalTok{, test1}\SpecialCharTok{$}\NormalTok{count)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## Estimates when censoring top 20% of data: 
+##  beta0 =  0.327419 
+##  beta1 =  1.987912 
+##  sigma^2 = 2.296002 
+##  Iteration Count = 100001
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\#80\% of top values are censored}
+\NormalTok{test2 }\OtherTok{\textless{}{-}} \FunctionTok{EM}\NormalTok{(x,yComplete,}\AttributeTok{thresh =} \FloatTok{0.2}\NormalTok{)}
+\FunctionTok{cat}\NormalTok{(}\StringTok{"Estimates when censoring top 80\% of data: }\SpecialCharTok{\textbackslash{}n}\StringTok{"}\NormalTok{, }\StringTok{"beta0 = "}\NormalTok{, test2}\SpecialCharTok{$}\NormalTok{beta0, }
+    \StringTok{"}\SpecialCharTok{\textbackslash{}n}\StringTok{ beta1 = "}\NormalTok{, test2}\SpecialCharTok{$}\NormalTok{beta1,}
+    \StringTok{"}\SpecialCharTok{\textbackslash{}n}\StringTok{ sigma\^{}2 = "}\NormalTok{, test2}\SpecialCharTok{$}\NormalTok{variance,}
+    \StringTok{"}\SpecialCharTok{\textbackslash{}n}\StringTok{ Iteration Count ="}\NormalTok{, test1}\SpecialCharTok{$}\NormalTok{count)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## Estimates when censoring top 80% of data: 
+##  beta0 =  -0.1659665 
+##  beta1 =  1.581843 
+##  sigma^2 =  2.114968 
+##  Iteration Count = 100001
+\end{verbatim}
+
+\begin{enumerate}
+\def\labelenumi{\alph{enumi}.}
+\setcounter{enumi}{3}
+\tightlist
+\item
+  Let Y be the complete data and \(Y_i\) be the variables in the
+  uncensored subset of Y. Then the MLE of Y is given by
+  \(log([\prod_{i-1}^{n}\mathbb{P}(Y= Y_i)][\prod_{i-1}^{n}\mathbb{P}(Y > \tau)])\)
+  =
+  \(log([\prod_{i-1}^{n}\mathbb{P}(Y= Y_i)]) + log([\prod_{i-1}^{n}\mathbb{P}(Y > \tau)])\)
+  =
+  \(\sum_{i=1}^{n}log(\mathbb{P}(Y = Y_i)) + \sum_{i=1}^{n}log(\mathbb{P}(Y > \tau))\).
+\end{enumerate}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{param }\OtherTok{\textless{}{-}} \FunctionTok{getStart}\NormalTok{(x, yComplete)}
+
+\NormalTok{logmax }\OtherTok{\textless{}{-}} \ControlFlowTok{function}\NormalTok{(}\AttributeTok{begin =} \FunctionTok{eval}\NormalTok{(}\FunctionTok{parse}\NormalTok{(}\AttributeTok{text =} \StringTok{\textquotesingle{}param \textless{}{-} getStart(x, yComplete)\textquotesingle{}}\NormalTok{)), }
+\NormalTok{                   x, yUncensored, }\AttributeTok{thresh =} \FloatTok{0.8}\NormalTok{)\{}
+  
+  \DocumentationTok{\#\# {-}{-}{-}{-}{-} sanity check {-}{-}{-}{-}{-}{-}{-}{-}{-}{-}}
+  \FunctionTok{validate\_that}\NormalTok{(}\FunctionTok{length}\NormalTok{(begin) }\SpecialCharTok{\textgreater{}} \DecValTok{0}\NormalTok{) }
+  \FunctionTok{validate\_that}\NormalTok{(}\FunctionTok{length}\NormalTok{(x) }\SpecialCharTok{==} \FunctionTok{length}\NormalTok{(yUncensored)) }
+  \FunctionTok{validate\_that}\NormalTok{(}\FunctionTok{as.numeric}\NormalTok{(thresh) }\SpecialCharTok{\textgreater{}} \DecValTok{0} \SpecialCharTok{\&\&} \FunctionTok{as.numeric}\NormalTok{(thresh) }\SpecialCharTok{\textless{}} \DecValTok{1}\NormalTok{)}
+  
+  \CommentTok{\#grab all components we need with our helper function}
+\NormalTok{  total }\OtherTok{\textless{}{-}} \FunctionTok{censor\_data}\NormalTok{(x, yComplete, }\AttributeTok{thresh =}\NormalTok{ thresh)}
+  
+  \CommentTok{\# initialize parameters}
+\NormalTok{  b0 }\OtherTok{\textless{}{-}}\NormalTok{ begin[}\DecValTok{1}\NormalTok{]; b1 }\OtherTok{\textless{}{-}}\NormalTok{ begin[}\DecValTok{2}\NormalTok{] ; sig2 }\OtherTok{\textless{}{-}} \FunctionTok{sqrt}\NormalTok{(begin[}\DecValTok{3}\NormalTok{])}
+  
+  \CommentTok{\#mean for known and censored data}
+\NormalTok{  mu\_known }\OtherTok{\textless{}{-}}\NormalTok{ b0 }\SpecialCharTok{+}\NormalTok{ b1 }\SpecialCharTok{*}\NormalTok{ x[total}\SpecialCharTok{$}\NormalTok{indexKnown] }
+\NormalTok{  mu\_censored }\OtherTok{\textless{}{-}}\NormalTok{  b0 }\SpecialCharTok{+}\NormalTok{ b1 }\SpecialCharTok{*}\NormalTok{ x[total}\SpecialCharTok{$}\NormalTok{indexCensored]}
+  
+  \CommentTok{\#complete log{-}likelihood}
+\NormalTok{  logscore }\OtherTok{\textless{}{-}} \FunctionTok{sum}\NormalTok{(}\FunctionTok{sum}\NormalTok{(}\FunctionTok{dnorm}\NormalTok{(total}\SpecialCharTok{$}\NormalTok{yKnown, }\AttributeTok{mean =}\NormalTok{ mu\_known, }\AttributeTok{sd =}\NormalTok{ sig2, }\AttributeTok{log =} \ConstantTok{TRUE}\NormalTok{)), }
+                  \FunctionTok{sum}\NormalTok{(}\FunctionTok{pnorm}\NormalTok{(total}\SpecialCharTok{$}\NormalTok{tau, }\AttributeTok{mean =}\NormalTok{ mu\_censored, }\AttributeTok{sd =}\NormalTok{ sig2, }
+                            \AttributeTok{log =} \ConstantTok{TRUE}\NormalTok{,}\AttributeTok{lower.tail =} \ConstantTok{FALSE}\NormalTok{))) }
+
+  \DocumentationTok{\#\# finding the max of a positive is the same as finding the minimum of its negative}
+  \DocumentationTok{\#\# optim() defaults to minimization of a function}
+  
+  \FunctionTok{return}\NormalTok{(}\SpecialCharTok{{-}}\NormalTok{logscore)}
+\NormalTok{\}}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# \#optim starting at recommended default values}
+\CommentTok{\# testDefault\textless{}{-} optim(par =  eval(parse(text = \textquotesingle{}param \textless{}{-} getStart(x, yComplete)\textquotesingle{})),}
+\CommentTok{\#                     x = x, yUncensored = yComplete, }
+\CommentTok{\#              fn = logmax, method = \textquotesingle{}BFGS\textquotesingle{}, hessian = TRUE)}
+\CommentTok{\# }
+\CommentTok{\# }
+\CommentTok{\# \#optim starting very close to the true solution}
+\CommentTok{\# testOptim \textless{}{-} optim(par = c(5,2,6), x = x, yUncensored = yComplete, }
+\CommentTok{\#                    fn = logmax, method = \textquotesingle{}BFGS\textquotesingle{}, hessian = TRUE)}
+\CommentTok{\# }
+\CommentTok{\# \#optim estimated values, iteration count, and estimated errors}
+\CommentTok{\# cat("When using optim() to maximize our log likelihood and }
+\CommentTok{\#     using our porposed starting values from part(b),\textbackslash{}n our estimates (beta0,beta1,variance) =",}
+\CommentTok{\#     testDefault$par, "with iteration count", as.numeric(testDefault$counts[1]), }
+\CommentTok{\#     "and \textbackslash{}n standard errors",}
+\CommentTok{\#     diag(solve(testDefault$hessian)) ,"respectively.\textbackslash{}n")}
+\CommentTok{\# }
+\CommentTok{\# cat("When choosing (1,1,1) as our staring value, }
+\CommentTok{\#     our estimates (beta0,beta1,variance) =",}
+\CommentTok{\#     testOptim$par, "with iteration count \textbackslash{}n", }
+\CommentTok{\#     as.numeric(testOptim$counts[1]),}
+\CommentTok{\#       "and standard errors",diag(solve(testDefault$hessian)) ,"respectively.")}
+\end{Highlighting}
+\end{Shaded}
+
+\(\rightarrow\) If we compare optim() with the BFGS method against our
+EM algorithm, we notice that the optim() solutions are very close to the
+true values of \(\theta = (\beta_0,\beta_1,\sigma^2) = (1,2,6)\) with
+reasonable iteration counts, while our EM algorithm is further off and
+has over 10,000 iterations, suggesting that we are not converging to a
+solution. There seems to be some further issues with my EM algorithm
+that I haven't fixed yet, but I believe the error arises from my
+formulas of the first derivatives.
+
+\end{document}

@@ -1,6 +1,3 @@
-library(testthat)
-library(assertthat)
-
 ## initialize testing data 
 set.seed(1)
 n <- 100
@@ -15,7 +12,7 @@ invisible(summary(mod))
 
 ## helper functions
 ## ------------------------ Censor Data Function   -------------
-## Input: x vector, complete original uncensored y data, ,
+## Input: x vector, complete original uncensored y data, 
 ##threshold we want to censor (between 0 & 1)
 ## Returns a list of uncensored y values, censored y values, 
 ##a combination of the former 2, indices for known & censored data, 
@@ -27,10 +24,9 @@ censor_data <- function(x, yUncensored, thresh = 0.80){
   known <- complete < tau
   censor <- complete > tau
   complete[complete > tau] <- tau
-  yTotal <- complete
   yKnown <- complete[known]
   yCensored <- complete[censor] 
-  complete <- list(yKnown, yCensored, yTotal ,known,censor,tau)
+  complete <- list(yKnown, yCensored, c(yKnown,yCensored),known, censor,tau)
   names(complete) <- c('yKnown' , 'yCensored', 'yTotal', 'indexKnown', 'indexCensored', 'tau')
   return(complete)
 }
@@ -54,7 +50,7 @@ getStart <- function(x, yUncensored, thresh = 0.80){
 }
 
 ## EM function
-EM <- function(x, yUncensored, thresh = 0.8, max_iter = 1e6){
+EM <- function(x, yUncensored, thresh = 0.8, max_iter = 1e5){
   
   #create censored data with threshold
   total <- censor_data(x, yComplete, thresh = thresh) 
@@ -114,39 +110,19 @@ EM <- function(x, yUncensored, thresh = 0.8, max_iter = 1e6){
   return(result)
 }
 
-test0 <- EM(x,yComplete, thresh = 0.95)
-cat("Estimates when censoring top 5% of data: \n", "beta0 = ", test0$beta0, 
-    "\n beta1 = ", test0$beta1,
-    "\n sigma^2 =", test0$variance,
-    "\n Iteration Count =", test0$count)
-
 #20% of top values are censored
-test1 <- EM(x,yComplete, thresh = 0.8)
+test1 <- EM(x,yComplete,thresh = 0.8)
 cat("Estimates when censoring top 20% of data: \n", "beta0 = ", test1$beta0, 
     "\n beta1 = ", test1$beta1,
     "\n sigma^2 =", test1$variance,
     "\n Iteration Count =", test1$count)
 
-#40% of top values are censored
-test2 <- EM(x,yComplete,thresh = 0.6)
-cat("Estimates when censoring top 40% of data: \n", "beta0 = ", test1$beta0, 
-    "\n beta1 = ", test2$beta1,
-    "\n sigma^2 =", test2$variance,
-    "\n Iteration Count =", test2$count)
-
-#60% of top values are censored
-test3 <- EM(x,yComplete,thresh = 0.4)
-cat("Estimates when censoring top 60% of data: \n", "beta0 = ", test1$beta0, 
-    "\n beta1 = ", test3$beta1,
-    "\n sigma^2 =", test3$variance,
-    "\n Iteration Count =", test3$count)
-
 #80% of top values are censored
-test4 <- EM(x,yComplete,thresh = 0.2)
+test2 <- EM(x,yComplete,thresh = 0.2)
 cat("Estimates when censoring top 80% of data: \n", "beta0 = ", test2$beta0, 
-    "\n beta1 = ", test4$beta1,
-    "\n sigma^2 = ", test4$variance,
-    "\n Iteration Count =", test4$count)
+    "\n beta1 = ", test2$beta1,
+    "\n sigma^2 = ", test2$variance,
+    "\n Iteration Count =", test1$count)
 
 param <- getStart(x, yComplete)
 
@@ -181,12 +157,12 @@ logmax <- function(begin = eval(parse(text = 'param <- getStart(x, yComplete)'))
 
 #optim starting at recommended default values
 testDefault<- optim(par =  eval(parse(text = 'param <- getStart(x, yComplete)')),
-                     x = x, yUncensored = yComplete, 
+                    x = x, yUncensored = yComplete, 
                     fn = logmax, method = 'BFGS', hessian = TRUE)
 
 
 #optim starting very close to the true solution
-testOptim <- optim(par = c(2,2,6), x = x, yUncensored = yComplete, 
+testOptim <- optim(par = c(5,2,6), x = x, yUncensored = yComplete, 
                    fn = logmax, method = 'BFGS', hessian = TRUE)
 
 #optim estimated values, iteration count, and estimated errors
@@ -196,7 +172,7 @@ cat("When using optim() to maximize our log likelihood and
     "and \n standard errors",
     diag(solve(testDefault$hessian)) ,"respectively.\n")
 
-cat("When choosing (2,2,6) as our staring value, 
+cat("When choosing (1,1,1) as our staring value, 
     our estimates (beta0,beta1,variance) =",
     testOptim$par, "with iteration count \n", 
     as.numeric(testOptim$counts[1]),
