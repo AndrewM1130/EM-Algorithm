@@ -20,9 +20,11 @@ output:
 
 # Introduction
 
-Why do we care about Expectation-Maximization Algorithms? In a sentence, they are very useful for fitting models onto data containing latent or truncated observations. For example, tax data may contain incomes that are bracketed above a certain level - '$500,000 & over' may be the label of high income tax-payers. In voter data, we may have censored values for . Surprisingly, even policing data is censored as inspections [4].
+Why do we care about Expectation-Maximization Algorithms? In a sentence, they are very useful for fitting models onto data containing latent or truncated observations. Often, we wish to find the Maximum Likelihood Estimator for data we suspect follows a Normal Distribution, but contains latent variables whose true value is hidden. The advantages of an Expectation-Maximization algorithms is the fact that we are almost sure to converge to a solution; furthermore, EM-Algorithms are built off fundamental concepts of probability & statistics, allowing us to explore the precise inner workings of our algorithm. In fact, **every iteration in the EM algorithm results in a guaranteed increase in likelihood.** However, there are also disadvantages to this method; it has slow convergence, converges to local optima only, and requires both forward & backward probabilities while numerical optimization requires only forward probability.
 
-To this end, we will break this analysis down into four sections, each complete with examples. We will be constructing an EM algorithm for linear regression on right-censored data. For the purposes of this demonstration, we will be utilizing  R - this method can be implemented and tested in Python for identical results.  
+**So when should we attempt to implement an EM Algorithm?** For example, tax data may contain incomes that are bracketed above a certain level - '$500,000 & over' may be the label of high income tax-payers. In voter data, we may have censored values surrounding total number of votes, or even automobile data on MPG may be labeled as '30 Mpg. & over', '40 Mpg & over', etc. Surprisingly, even local government data is censored as inspections on low-income housing structures and restaurants in Los-Angeles were "capped" on official reports[3].
+
+To this end, we will be constructing an EM algorithm for linear regression on right-censored data. For the purposes of this demonstration, we will be utilizing  R - this method can be implemented and tested in Python for identical results.
 
 First, let's define the random variables and parameters of the log likelihood function $L(\theta|X)$ that we want to maximize with our algorithm; I will provide a concise proof of the EM Algorithm below. 
 
@@ -31,9 +33,10 @@ First, let's define the random variables and parameters of the log likelihood fu
   - $Z_i$ (Censored Data
 
 **Proof.**
-$\rightarrow$ Let
 
-**So how do we translate this mathematical text into functional code? Let's take the following steps:**
+A brief proof of the EM algorithm is shown here, but [this article]('https://www.informit.com/articles/article.aspx?p=363730&seqNum=2) provides rigrous detail and step-by-step derivations for those who are less familiar with this concept. 
+
+**Next, how do we translate this mathematical text into functional code? Let's take the following steps:**
 
 i)  E step: To maximize the quantity $Q(\theta,\theta^t)$, we first construct the log density based on our starting values
 
@@ -45,7 +48,7 @@ One issue with EM Algorithms choosing reasonable starting values. I propose that
 
 # Design
 
-For the purposes of demonstration, let's construct randomized data for a si. A plot of this generated data is shown below:
+For the purposes of demonstration, let's sample random data from a normal distribution with a preset mean and variance - this will allow us to induce moderately strong signals into our data to influence the results. For this demonstration, we are seeking to estimate the intercept and regression weights for a simple linear model with the true parameters shown below. 
 
 
 ```r
@@ -59,12 +62,26 @@ yComplete <- rnorm(n, beta0 + beta1*x, sqrt(sigma2))
 ## Parameters above were chosen such that signal in data is moderately strong.
 ## The estimate divided by std error is approximately 3.
 mod <- lm(yComplete ~ x)
+cat("True Parameters \n ")
+```
+
+```
+## True Parameters 
+## 
+```
+
+```r
 coef(mod)
 ```
 
 ```
 ## (Intercept)           x 
 ##   0.5607442   2.7650812
+```
+
+```r
+k = length(mod$coefficients)-1 #Subtract one to ignore intercept
+SSE = sum(mod$residuals**2)
 ```
 
 
@@ -102,6 +119,7 @@ getStart <- function(x, yUncensored, thresh = 0.80){
 }
 ```
 
+To give you a better understanding of this truncated or censored data concept, we can construct two plots - one fitting a linear regression model with no censored data against a linear model where the top 20% of values are set to the 80% quantile value.
 
 
 ```r
@@ -141,7 +159,7 @@ coef(lm(graphC$yTotal ~ x))
 
 # Implementation
 
-Compare this to the uncensored data above. Note that fitting a base regression model would not be a good idea here: 
+We can see that our estimates are actually not too far off from the true values if we set the top 20% of data to a constant - I propose that these estimates based off the censored data will be valid starting values of our algorithm. In practice, starting values should be chosen after incorporating both prior knowledge & context of the model or data. Finally, we will set termination conditions to include a max iteration count of 10,000 alongside an 'error' of 0.00001, ie, our algorithm will stop after a certain number of loops or we reach estimates where $\hat{\beta_0}^{(t+1)} - \hat{\beta_0}^{(t)} < 0.0001$ & $\hat{\beta_1}^{(t+1)} - \hat{\beta_1}^{(t)} < 0.0001$.
  
 
 ```r
@@ -205,6 +223,8 @@ EM <- function(x, yUncensored, thresh = 0.8, max_iter = 1e5, error = 1e-5){
 ```
 
 # Results
+
+To test our algorithm, we will utilize varying levels of censorship levels: 5%, 20%, 40%, 60%, 80%. An error level of 1e-5 is chosen as incremental increases to the order of 1e-5 would not provide substancial increases in the accuracy of our estimates. 
 
 
 ```r
@@ -297,6 +317,32 @@ cat("Estimates when censoring top 80% of data: \n", "beta0 = ", test4$beta0,
 
 
 ```r
+##table for wordpress blog
+tab <- matrix(c(test0$beta0, test0$beta1, test0$variance,
+                test1$beta0, test1$beta1, test1$variance,
+                test2$beta0, test2$beta1, test2$variance,
+                test3$beta0, test3$beta1, test3$variance,
+                test4$beta0, test4$beta1, test4$variance,
+                coef(lm(graphC$yTotal ~ x))[1], coef(lm(graphC$yTotal ~ x))[1], SSE), ncol=6, byrow=FALSE)
+colnames(tab) <- c('5% Censor','20% Censor','40$ Censor','60% Censor','80% Censor', 'True Parameters')
+rownames(tab) <- c('beta0','beta1','sigma^2')
+tab <- as.table(tab)
+tab
+```
+
+```
+##             5% Censor    20% Censor    40$ Censor    60% Censor    80% Censor
+## beta0     0.537208476   0.327420138   0.176626149  -0.007311921  -0.165969905
+## beta1     2.386994549   1.987911068   1.607193310   1.474401208   1.581857627
+## sigma^2   3.977808526   2.295995718   1.491805543   1.588117858   2.114953712
+##         True Parameters
+## beta0       0.456377825
+## beta1       0.456377825
+## sigma^2   520.729100608
+```
+
+
+```r
 ## plot of EM Algorithm results
 plot(x, yComplete, ylim = c(0,8), cex = 1.3, col = "blue", main = "EM-Regression Estimates", xlab = "X", ylab = "yCensored")
 
@@ -313,11 +359,13 @@ legend(x = "topright",          # Position
        lwd = 2)                 # Line width
 ```
 
-![](EM-Report_files/figure-latex/unnamed-chunk-13-1.pdf)<!-- --> 
+![](EM-Report_files/figure-latex/unnamed-chunk-14-1.pdf)<!-- --> 
+
+$\rightarrow$ From the plot above, we can conclude that higher levels of censorship result in larger errors for our parameters. 
 
 # Comparisons
 
-  Let Y be the complete data and $Y_i$ be the variables in the uncensored subset of Y. Then the MLE of Y is given by $log([\prod_{i-1}^{n}\mathbb{P}(Y= Y_i)][\prod_{i-1}^{n}\mathbb{P}(Y > \tau)])$ = $log([\prod_{i-1}^{n}\mathbb{P}(Y= Y_i)]) + log([\prod_{i-1}^{n}\mathbb{P}(Y > \tau)])$ = $\sum_{i=1}^{n}log(\mathbb{P}(Y = Y_i)) + \sum_{i=1}^{n}log(\mathbb{P}(Y > \tau))$. 
+  Let Y be the complete data and $Y_i$ be the variables in the uncensored subset of Y. Then the MLE of Y is given by $log([\prod_{i-1}^{n}\mathbb{P}(Y= Y_i)][\prod_{i-1}^{n}\mathbb{P}(Y > \tau)])$ = $log([\prod_{i-1}^{n}\mathbb{P}(Y= Y_i)]) + log([\prod_{i-1}^{n}\mathbb{P}(Y > \tau)])$ = $\sum_{i=1}^{n}log(\mathbb{P}(Y = Y_i)) + \sum_{i=1}^{n}log(\mathbb{P}(Y > \tau))$. We can code this into R and utilize the built-in `optim()` function to arrive at optimal coefficient values. 
 
 
 ```r
@@ -384,9 +432,7 @@ cat("When choosing (2,2,6) as our staring value, our estimates (beta0,beta1,vari
 ## When choosing (2,2,6) as our staring value, our estimates (beta0,beta1,variance) = 0.4566271 2.824113 4.619027 with iteration count 22 and standard errors 0.2277647 0.6903112 0.5881268 respectively.
 ```
 
-  $\rightarrow$ If we compare optim() with the BFGS method against our EM algorithm, we notice that the optim() solutions are very close to the true values of $\theta = (\beta_0,\beta_1,\sigma^2) = (1,2,6)$ with reasonable iteration counts, while our EM algorithm is further off and has over 10,000 iterations, suggesting that we are not converging to a solution. There seems to be some further issues with my EM algorithm that I haven't fixed yet, but I believe the error arises from my formulas of the first derivatives. 
-  
-  Next, let's look at
+  $\rightarrow$ If we compare optim() with the BFGS method against our EM algorithm, we notice that the optim() solutions are very close to the true values of $\theta = (\beta_0,\beta_1,\sigma^2) = (1,2,6)$ with reasonable iteration counts. Similarly, our EM algorithm provides quick convergence to an acceptable solution when the level is censoring is below 20% - these results confirm the functionality of our EM Algorithm. 
   
 
 ```r
@@ -400,21 +446,20 @@ microbenchmark('EM' = EM(x,yComplete,thresh = 0.8),
 ```
 ## Unit: milliseconds
 ##           expr       min        lq      mean    median        uq       max
-##             EM  2.367222  3.003738  3.905831  3.451075  4.017391  11.02546
-##  log-lik optim 38.289030 43.864610 58.466636 49.211936 56.496561 212.28080
+##             EM  2.156547  3.171448  4.691265  4.294289  5.694886  11.50111
+##  log-lik optim 27.135898 44.258087 58.542254 54.949222 68.692145 124.78734
 ##  neval
 ##    100
 ##    100
 ```
   
-  From the benchmarking comparison above, we can see a clear increase in computational speed for our EM-Algorithm. It seems that easy problems like . It would be fair to assume that EM-Algorithms provide a great benefit over log-likelihood optimization for models with low numbers of covariates or a small number of observations. 
+  From the benchmarking comparison above, we can see a clear increase in computational speed for our EM-Algorithm. It seems that simple models such as the example above with only a singular covariate do not induce computational strain. It would be fair to assume that EM-Algorithms provide a great benefit over log-likelihood optimization for models with low numbers of covariates or a small number of observations. However, optimization methods such as BFGS or Quasi-Newton methods are sure to provide better convergence rates due to the large number of calculations done by the EM function. 
   
 # Discussion
   
-  Vardi’s Expectation-Maximization (EM) algorithm is frequently used for computing the nonparametric maximum likelihood estimator of length-biased right-censored data, which does not admit a closed-form representation. The EM algorithm may converge slowly, particularly for heavily censored data. We studied two algorithms for accelerating the convergence of the EM algorithm, based on iterative convex minimization and Aitken’s delta squared process
+  Vardi’s Expectation-Maximization (EM) algorithm is frequently used for computing the nonparametric maximum likelihood estimator of length-biased right-censored data, which does not admit a closed-form representation. The EM algorithm may converge slowly, particularly for heavily censored data. Two algorithms for accelerating the convergence of the EM algorithm are based on iterative convex minimization and Aitken’s delta squared process - more information on this can be found in [this paper](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC5716484/)
   
 **References**
-1. [Video Source](https://www.youtube.com/watch?v=Ydhrz3IWM2I&list=PLmM_3MA2HWpauQtozhzRYzYWigz4Ru44K&index=6,)
-2. [Paper on EM-optimization & efficiency](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC5716484/)
-3. Martin Haugh - EM Algorithm
-4. Harvard Business Review
+1. Chan, Kwun Chuen Gary. “Acceleration of Expectation-Maximization Algorithm for Length-Biased Right-Censored Data.” Lifetime Data Analysis, U.S. National Library of Medicine, Jan. 2017, https://www.ncbi.nlm.nih.gov/pmc/articles/PMC5716484/. 
+2. Haugh, Matin. IEOR E4570: Machine Learning for or ... - Columbia University. 2015, http://www.columbia.edu/~mh2078/MachineLearningORFE/EM_Algorithm.pdf. 
+3. Beane, Matt. “Learning to Work with Intelligent Machines.” Harvard Business Review, 2018, pp. 120–131. 
