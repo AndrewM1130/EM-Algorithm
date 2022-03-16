@@ -270,13 +270,14 @@ abline(a=test3$beta0, b=test3$beta1, col = 'brown', lwd = 3)
 abline(h=graphC$tau, col="blue", lwd=3, lty=2)
 
 legend(x = "topright",          # Position
-       legend = c("5% Censored", "20% Censored", "40% Censored", "60% Censored"),  # Legend texts
-       lty = c(1),           # Line types
-       col = c('brown','red','green','brown'),  # Line colors
+       legend = c("5% Censored", "20% Censored", 
+                  "40% Censored", "60% Censored"),  # Legend texts
+       lty = 1,           # Line types
+       col = c('red','green','black','brown'),  # Line colors
        lwd = 2)                 # Line width
 ```
 
-$\rightarrow$ From the plot above, we can conclude that higher levels of censorship result in larger errors for our parameters. 
+$\rightarrow$ From the plot above, we can confirm our intuition that higher levels of censorship result in larger errors for our parameters. Surprisingly, note that our error does not seem to increase linearly with percentage of missing data - when we censor above 50% of the data points, we halve the sample size; thus, the consequences of further missing data is not as large as when compared to a fully observable dataset. 
 
 # Comparisons
 
