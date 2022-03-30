@@ -1,7 +1,7 @@
 ---
 title: "Expectation Maximization Algorithms for Generalized Linear Models"
 author: "Andrew Ma"
-date: "January 20, 2022"
+date: "March 29, 2022"
 header-includes:
    - \usepackage{float}
 output: 
@@ -34,7 +34,7 @@ First, let's define the random variables and parameters of the log likelihood fu
 
 **Proof.**
 
-A brief proof of the EM algorithm is shown here, but [this article]('https://www.informit.com/articles/article.aspx?p=363730&seqNum=2) provides rigrous detail and step-by-step derivations for those who are less familiar with this concept. 
+A brief proof of the EM algorithm is shown here, but [this article]('https://www.informit.com/articles/article.aspx?p=363730&seqNum=2) provides rigorous detail and step-by-step derivations for those who are less familiar with this concept. 
 
 **Next, how do we translate this mathematical text into functional code? Let's take the following steps:**
 
@@ -48,7 +48,7 @@ One issue with EM Algorithms choosing reasonable starting values. I propose that
 
 # Design
 
-For the purposes of demonstration, let's sample random data from a normal distribution with a preset mean and variance - this will allow us to induce moderately strong signals into our data to influence the results. For this demonstration, we are seeking to estimate the intercept and regression weights for a simple linear model with the true parameters shown below. 
+For the purposes of demonstration, lets sample from a normal distribution with a known mean and variance - this will allow us to induce moderately strong signals into our data to influence the results. For this demonstration, we are seeking to understand the effects of missing/truncated data with respect to OLS estimates under a simple linear model; note that this result can be generalized to linear models consisting of alternative link functions. The code utilized for data generation is shown below, alongside a plot and the true parameters under a simple linear regression model with full & complete data.
 
 
 ```r
@@ -119,7 +119,7 @@ getStart <- function(x, yUncensored, thresh = 0.80){
 }
 ```
 
-To give you a better understanding of this truncated or censored data concept, we can construct two plots - one fitting a linear regression model with no censored data against a linear model where the top 20% of values are set to the 80% quantile value.
+To give you a better understanding of this truncated or censored data concept, we can construct two plots - one fitting a linear regression model with no censored data against a linear model where the top 20% of values are truncated; ie, they are set to the 80% quantile value, represented by the dotted blue line.
 
 
 ```r
@@ -353,15 +353,16 @@ abline(a=test3$beta0, b=test3$beta1, col = 'brown', lwd = 3)
 abline(h=graphC$tau, col="blue", lwd=3, lty=2)
 
 legend(x = "topright",          # Position
-       legend = c("5% Censored", "20% Censored", "40% Censored", "60% Censored"),  # Legend texts
-       lty = c(1),           # Line types
-       col = c('brown','red','green','brown'),  # Line colors
+       legend = c("5% Censored", "20% Censored", 
+                  "40% Censored", "60% Censored"),  # Legend texts
+       lty = 1,           # Line types
+       col = c('red','green','black','brown'),  # Line colors
        lwd = 2)                 # Line width
 ```
 
 ![](EM-Report_files/figure-latex/unnamed-chunk-14-1.pdf)<!-- --> 
 
-$\rightarrow$ From the plot above, we can conclude that higher levels of censorship result in larger errors for our parameters. 
+$\rightarrow$ From the plot above, we can confirm our intuition that higher levels of censorship result in larger errors for our parameters. Surprisingly, note that our error does not seem to increase linearly with percentage of missing data - when we censor above 50% of the data points, we halve the sample size; thus, the consequences of further missing data is not as large as when compared to a fully observable dataset. 
 
 # Comparisons
 
@@ -445,12 +446,9 @@ microbenchmark('EM' = EM(x,yComplete,thresh = 0.8),
 
 ```
 ## Unit: milliseconds
-##           expr       min        lq      mean    median        uq       max
-##             EM  2.156547  3.171448  4.691265  4.294289  5.694886  11.50111
-##  log-lik optim 27.135898 44.258087 58.542254 54.949222 68.692145 124.78734
-##  neval
-##    100
-##    100
+##           expr      min        lq      mean    median        uq       max neval
+##             EM  1.53923  2.170971  2.848201  2.506603  3.373345  7.722169   100
+##  log-lik optim 19.81583 31.740714 38.078424 36.251404 44.541785 69.457961   100
 ```
   
   From the benchmarking comparison above, we can see a clear increase in computational speed for our EM-Algorithm. It seems that simple models such as the example above with only a singular covariate do not induce computational strain. It would be fair to assume that EM-Algorithms provide a great benefit over log-likelihood optimization for models with low numbers of covariates or a small number of observations. However, optimization methods such as BFGS or Quasi-Newton methods are sure to provide better convergence rates due to the large number of calculations done by the EM function. 

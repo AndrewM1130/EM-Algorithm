@@ -56,7 +56,7 @@ One issue with EM Algorithms choosing reasonable starting values. I propose that
 
 # Design
 
-For the purposes of demonstration, let's sample random data from a normal distribution with a preset mean and variance - this will allow us to induce moderately strong signals into our data to influence the results. For this demonstration, we are seeking to estimate the intercept and regression weights for a simple linear model with the true parameters shown below. 
+For the purposes of demonstration, lets sample from a normal distribution with a known mean and variance - this will allow us to induce moderately strong signals into our data to influence the results. For this demonstration, we are seeking to understand the effects of missing/truncated data with respect to OLS estimates under a simple linear model; note that this result can be generalized to linear models consisting of alternative link functions. The code utilized for data generation is shown below, alongside a plot and the true parameters under a simple linear regression model with full & complete data.
 
 ```{r}
 ## initialize testing data 
@@ -110,7 +110,7 @@ getStart <- function(x, yUncensored, thresh = 0.80){
 }
 ```
 
-To give you a better understanding of this truncated or censored data concept, we can construct two plots - one fitting a linear regression model with no censored data against a linear model where the top 20% of values are set to the 80% quantile value.
+To give you a better understanding of this truncated or censored data concept, we can construct two plots - one fitting a linear regression model with no censored data against a linear model where the top 20% of values are truncated; ie, they are set to the 80% quantile value, represented by the dotted blue line.
 
 ```{r fig.height=6, fig.width=10}
 par(mfrow = c(2,1))
